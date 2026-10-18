@@ -18,8 +18,36 @@ on:
 # ──────────────────────────────────────────────────────────────────────────────
 
 jobs:
+  gate:
+    name: Syntax & Lint Gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Syntax check (node --check)
+        run: |
+          for f in $(find src -type f -name '*.js'); do
+            node --check "$f"
+          done
+
+      - run: npm ci
+
+      - name: ESLint check
+        run: npm run lint
+
   test:
     name: Unit & Integration Tests
+    needs: gate
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -106,6 +134,7 @@ jobs:
 
   migrations:
     name: DB Migrations (idempotency + lock)
+    needs: gate
     runs-on: ubuntu-latest
     defaults:
       run:
